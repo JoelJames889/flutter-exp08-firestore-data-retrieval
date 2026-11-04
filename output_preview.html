@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experiment 8 Output - Firestore Data Retrieval</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background-color: #090D16;
+      color: #E2E8F0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 16px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .orb-1 {
+      position: fixed;
+      top: -120px;
+      left: 10%;
+      width: 440px;
+      height: 440px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, rgba(9, 13, 22, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-2 {
+      position: fixed;
+      bottom: -100px;
+      right: 12%;
+      width: 460px;
+      height: 460px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.14) 0%, rgba(9, 13, 22, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .header-bar { max-width: 1000px; width: 100%; text-align: center; margin-bottom: 24px; position: relative; z-index: 1; }
+    .badge {
+      display: inline-block;
+      padding: 5px 14px;
+      background: rgba(168, 85, 247, 0.15);
+      color: #C084FC;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 { font-size: 26px; color: #FFFFFF; margin-bottom: 6px; font-weight: 700; }
+    p.subtitle { color: #94A3B8; font-size: 13.5px; }
+
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 32px;
+      max-width: 1100px;
+      width: 100%;
+      align-items: flex-start;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Phone Shell */
+    .phone-mockup {
+      width: 380px;
+      height: 780px;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 46px;
+      padding: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.9), 0 0 0 1px rgba(168, 85, 247, 0.25);
+      position: relative;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #090D16;
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* App Bar */
+    .app-bar {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 24px 16px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .app-title { font-size: 16px; font-weight: 700; color: #FFFFFF; }
+    .app-subtitle { font-size: 11px; color: #C084FC; }
+
+    /* Filter Card */
+    .filter-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      margin: 12px;
+      border-radius: 16px;
+      padding: 12px;
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .search-input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #FFF;
+      outline: none;
+    }
+    .search-input:focus { border-color: #A855F7; }
+
+    .chip-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .chip {
+      padding: 4px 9px;
+      font-size: 10.5px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: #94A3B8;
+    }
+    .chip.active {
+      background: rgba(168, 85, 247, 0.2);
+      border-color: #A855F7;
+      color: #D8B4FE;
+      font-weight: 700;
+    }
+
+    .slider-row { display: flex; justify-content: space-between; font-size: 11px; color: #94A3B8; align-items: center; }
+    .slider-val { color: #EC4899; font-weight: 700; }
+    input[type=range] { accent-color: #EC4899; width: 100%; margin-top: 4px; }
+
+    /* Results */
+    .content-area { flex: 1; overflow-y: auto; padding: 4px 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+    .emp-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .emp-card:hover { border-color: rgba(168, 85, 247, 0.35); background: rgba(255, 255, 255, 0.05); }
+
+    .emp-top { display: flex; justify-content: space-between; align-items: center; }
+    .emp-name { font-size: 13px; font-weight: 700; color: #FFFFFF; }
+    .emp-rating { font-size: 11px; font-weight: 700; color: #FBBF24; display: flex; align-items: center; gap: 2px; }
+    .emp-role { font-size: 11px; font-weight: 600; color: #D8B4FE; }
+    .emp-meta { font-size: 10px; color: #94A3B8; }
+    .emp-foot { font-size: 11px; font-weight: 700; color: #EC4899; margin-top: 4px; }
+
+    /* Side Panel */
+    .side-panel {
+      flex: 1;
+      min-width: 320px;
+      max-width: 480px;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .panel-title { font-size: 16px; font-weight: 700; color: #FFF; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px; }
+    .info-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; }
+    .info-label { color: #94A3B8; }
+    .info-value { color: #F1F5F9; font-weight: 600; text-align: right; }
+
+    .code-box {
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #C084FC;
+      line-height: 1.4;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFF;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .action-btn:hover { background: rgba(255, 255, 255, 0.14); }
+  </style>
+</head>
+<body>
+  <div class="orb-1"></div>
+  <div class="orb-2"></div>
+
+  <div class="header-bar">
+    <div class="badge">Experiment 08 Record Output</div>
+    <h1>Cloud Firestore Data Retrieval & Querying</h1>
+    <p class="subtitle">Real-time StreamBuilder, compound filters, inequality range boundaries, and prefix search</p>
+  </div>
+
+  <div class="main-container">
+    <!-- Phone Mockup -->
+    <div class="phone-mockup">
+      <div class="phone-screen">
+        <div class="app-bar">
+          <div>
+            <div class="app-title">Firestore Query Engine</div>
+            <div class="app-subtitle">Compound Queries</div>
+          </div>
+        </div>
+
+        <div class="filter-panel">
+          <input type="text" class="search-input" id="searchBox" placeholder="Query by Name or Role..." oninput="filterData()">
+
+          <div class="chip-row">
+            <div class="chip active" onclick="setDept('All', this)">All</div>
+            <div class="chip" onclick="setDept('Engineering', this)">Engineering</div>
+            <div class="chip" onclick="setDept('AI Research', this)">AI Research</div>
+            <div class="chip" onclick="setDept('Product', this)">Product</div>
+            <div class="chip" onclick="setDept('Security', this)">Security</div>
+          </div>
+
+          <div>
+            <div class="slider-row">
+              <span>Min Salary:</span>
+              <span class="slider-val" id="salaryDisplay">$60,000</span>
+            </div>
+            <input type="range" id="salarySlider" min="60000" max="150000" step="10000" value="60000" oninput="filterData()">
+          </div>
+        </div>
+
+        <div class="content-area" id="resultsList">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel">
+      <div class="panel-title">Compound Firestore Query Architecture</div>
+
+      <div class="info-row">
+        <span class="info-label">Experiment No:</span>
+        <span class="info-value">08</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Query Target:</span>
+        <span class="info-value">CollectionReference.where(...)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Stream Construct:</span>
+        <span class="info-value">StreamBuilder&lt;List&lt;EmployeeRecord&gt;&gt;</span>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <div style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 6px;">Compound Query Chain (Dart)</div>
+        <div class="code-box">
+Query q = firestore.collection('employees');
+
+if (dept != 'All') {
+  q = q.where('department', isEqualTo: dept);
+}
+if (minSalary > 60000) {
+  q = q.where('salary', isGreaterThanOrEqualTo: minSalary);
+}
+if (namePrefix.isNotEmpty) {
+  q = q.where('name', isGreaterThanOrEqualTo: prefix)
+       .where('name', isLessThanOrEqualTo: '$prefix\uf8ff');
+}
+        </div>
+      </div>
+
+      <button class="action-btn" onclick="window.print()">🖨️ Print Lab Output Record</button>
+    </div>
+  </div>
+
+  <script>
+    let currentDept = 'All';
+    const masterEmployees = [
+      { name: 'Alexander Wright', email: 'a.wright@cloudcorp.com', department: 'Engineering', role: 'Staff Infrastructure Engineer', salary: 145000, rating: 4.9 },
+      { name: 'Amina Al-Mansoor', email: 'a.mansoor@cloudcorp.com', department: 'AI Research', role: 'Senior ML Scientist', salary: 160000, rating: 5.0 },
+      { name: 'Benjamin Cole', email: 'b.cole@cloudcorp.com', department: 'Engineering', role: 'Frontend Architect', salary: 130000, rating: 4.7 },
+      { name: 'Chloe Dubois', email: 'c.dubois@cloudcorp.com', department: 'Product', role: 'Lead Technical PM', salary: 125000, rating: 4.8 },
+      { name: 'Devin Patel', email: 'd.patel@cloudcorp.com', department: 'Engineering', role: 'Backend Systems Engineer', salary: 110000, rating: 4.6 },
+      { name: 'Emily Watson', email: 'e.watson@cloudcorp.com', department: 'Security', role: 'Cloud Security Analyst', salary: 118000, rating: 4.8 },
+      { name: 'Faisal Karim', email: 'f.karim@cloudcorp.com', department: 'AI Research', role: 'Data Mining Engineer', salary: 138000, rating: 4.7 }
+    ];
+
+    function setDept(dept, el) {
+      currentDept = dept;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      filterData();
+    }
+
+    function filterData() {
+      const q = document.getElementById('searchBox').value.toLowerCase().trim();
+      const minSal = parseFloat(document.getElementById('salarySlider').value);
+      document.getElementById('salaryDisplay').innerText = `$${minSal.toLocaleString()}`;
+
+      const container = document.getElementById('resultsList');
+      container.innerHTML = '';
+
+      const filtered = masterEmployees.filter(e => {
+        const matchesQ = !q || e.name.toLowerCase().includes(q) || e.role.toLowerCase().includes(q);
+        const matchesD = currentDept === 'All' || e.department === currentDept;
+        const matchesS = e.salary >= minSal;
+        return matchesQ && matchesD && matchesS;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#64748B; padding:30px 0; font-size:12px;">No matching records found.</div>`;
+        return;
+      }
+
+      filtered.forEach(e => {
+        const card = document.createElement('div');
+        card.className = 'emp-card';
+        card.innerHTML = `
+          <div class="emp-top">
+            <span class="emp-name">${e.name}</span>
+            <span class="emp-rating">★ ${e.rating.toFixed(1)}</span>
+          </div>
+          <div class="emp-role">${e.role}</div>
+          <div class="emp-meta">${e.department} • ${e.email}</div>
+          <div class="emp-foot">Comp: $${e.salary.toLocaleString()} /yr</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    filterData();
+  </script>
+</body>
+</html>
